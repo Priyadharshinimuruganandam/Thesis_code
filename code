@@ -1,0 +1,160 @@
+
+############### Preprocessing ###############
+
+import pandas as pd
+import numpy as np
+from pandas import read_csv
+from sklearn.preprocessing import Imputer
+
+#data = pd.read_csv("E:\\phase2\\dataset\\clevland.xlsx", header=None)
+#print(data)
+#data=open(clevland)
+dataset = read_csv("Arrythmia_dataset.csv", sep = ",")
+dataset.isnull().sum()
+
+dataset=dataset.replace('?', np.NaN)
+print(dataset)
+#print(dataset.shape)
+dff = pd.DataFrame(dataset)
+print(dff)
+# Create an imputer object that looks for 'Nan' values, then replaces them with the mean value of the feature by columns (axis=0)
+mean_imputer = Imputer(missing_values='NaN', strategy='mean', axis=0)
+# Train the imputor on the df dataset
+mean_imputer = mean_imputer.fit(dataset[1:])
+# Apply the imputer to the df dataset
+preprocessed = mean_imputer.transform(dataset.values[1:])
+preprocessed_df=pd.DataFrame(preprocessed)
+print(preprocessed_df)
+preprocessed_df.to_csv("Arrythmia_Prep.csv")
+
+############### Normalize ###############
+"""
+from pandas import read_csv
+import pandas as pd
+from sklearn import preprocessing
+
+dataset = read_csv("Arrythmia_Prep.csv")
+print(dataset)
+df=pd.DataFrame(dataset)
+print(df)
+# prepare data for normalization
+values = df.values
+# Create a minimum and maximum processor object
+min_max_scaler = preprocessing.MinMaxScaler()
+
+# Create an object to transform the data to fit minmax processor
+x_scaled = min_max_scaler.fit_transform(values)
+df_normalized = pd.DataFrame(x_scaled)
+print(df_normalized)
+df_normalized.to_csv("Arrythmia_Prep.csv")  
+"""
+
+############### Algorithm implimentation ###############
+
+import numpy as np
+import pandas as pd
+import itertools
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix,roc_auc_score
+
+df=pd.read_csv("Arrythmia_Prep.csv")
+
+X = np.array(df.iloc[:, 0:55].values)
+y = np.array(df.iloc[:, 55].values)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+ 
+# K- Nearest Neighbour
+
+from sklearn.neighbors import KNeighborsClassifier
+classifier = KNeighborsClassifier(n_jobs=2, n_neighbors=2)  
+classifier.fit(X_train, y_train) 
+y_pred = classifier.predict(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+print("\n KNN Accuracy : ",accuracy_score(y_test, y_pred))
+print("\n\nConfusion Matrix : \n\n", confusion_matrix(y_test, y_pred))
+
+# Naive Bayes
+
+from sklearn.naive_bayes import GaussianNB
+classifier = GaussianNB()
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+print("\n Naive Bayes Accuracy : ",accuracy_score(y_test, y_pred))
+print("\n\nConfusion Matrix : \n\n", confusion_matrix(y_test, y_pred))
+
+
+# SVM
+
+from sklearn.svm import SVC
+classifier = SVC(kernel = 'linear', verbose=True)
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+print("\n SVM Accuracy : ",accuracy_score(y_test, y_pred))
+print("\n\nConfusion Matrix : \n\n", confusion_matrix(y_test, y_pred))
+
+# Logistic Regression
+
+from sklearn.linear_model import LogisticRegression
+classifier = LogisticRegression(multi_class='multinomial',
+                         penalty='l1', solver='saga', tol=0.025)  
+classifier.fit(X_train, y_train) 
+y_pred = classifier.predict(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+print("\n Logistic Regression Accuracy : ",accuracy_score(y_test, y_pred))
+print("\n\nConfusion Matrix : \n\n", confusion_matrix(y_test, y_pred))
+
+# Random Forest Classifier
+
+from sklearn.ensemble import RandomForestClassifier
+model = RandomForestClassifier(n_estimators=400)
+model.fit(X_train, y_train)
+y_pred = model.fit(X_train, y_train).predict(X_test)
+
+from sklearn.metrics import accuracy_score, confusion_matrix
+print("\n Random Forest Accuracy : ",accuracy_score(y_test, y_pred))
+print("\n\nConfusion Matrix : \n\n", confusion_matrix(y_test, y_pred))
+
+# Save the Model
+
+import pickle
+file = "Arrythmia.model"
+pickle.dump(model,open(file,'wb'))
+
+# Real time testing
+
+test = [[50, 1, 172, 95, 138, 175, 400,175, 92,	96,	34,	70,	65,	75, 80, 32, 20, 56, 42, 0, 116, 0, 0, 1, 28, 0, 24, 24, 76, 28, 28, 1, 4.5, -2.8,	0.3, 2.5, 24.7, 26.2, -1, -5.3, 1.8, 0,	-2.5,-8, -28.5, 0.5, 0, 0, -0.2, 1, 42.7, 0.3, 3.4, 12.3, 49 ]]
+
+loadedModel = pickle.load(open("Arrythmia.model","rb"))                      
+loadedModel.predict(test)
+
+
+
+def plot_confusion_matrix(cm, classes,normalize=False,title='Confusion matrix',cmap=plt.cm.Blues):
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j],
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+cnf_matrix = confusion_matrix(y_test, y_pred)
+np.set_printoptions(precision=2)
+plt.figure()
+plot_confusion_matrix(cnf_matrix, classes='class',title='Confusion matrix, without normalization')
+plt.show()
