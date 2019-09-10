@@ -1,0 +1,14 @@
+// ECG click2: plot the data in Serial plotter
+void setup() {
+
+  Serial.begin(57600);
+}
+ 
+// the loop 
+void loop() {
+  // read the input from analog pin 0:
+  int ECGsensorValue = analogRead(A0);
+  // print out in serial plotter
+  Serial.println(ECGsensorValue);
+  delayMicroseconds(3900);
+}
